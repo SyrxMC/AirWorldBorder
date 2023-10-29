@@ -1,0 +1,5 @@
+name: AirWorldBorder
+version: '${version}'
+main: br.dev.brunoxkk0.airworldborder.AirWorldBorder
+depend:
+  - WorldBorder
