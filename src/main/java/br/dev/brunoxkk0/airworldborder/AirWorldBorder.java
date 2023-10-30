@@ -1,6 +1,7 @@
 package br.dev.brunoxkk0.airworldborder;
 
 import br.dev.brunoxkk0.airborder.api.AirBorderAPI;
+import com.wimbli.WorldBorder.BorderData;
 import com.wimbli.WorldBorder.CoordXZ;
 import com.wimbli.WorldBorder.WorldBorder;
 import net.minecraft.server.v1_7_R4.WorldServer;
@@ -15,13 +16,13 @@ import java.util.HashMap;
 public final class AirWorldBorder extends JavaPlugin implements Listener {
 
     private static final HashMap<Integer, World> CACHED_WORLDS = new HashMap<>();
+    private static final HashMap<Integer, BorderData> CACHED_WORLD_BORDERS = new HashMap<>();
+    private static Long LAST_CHECK = 0L;
 
     @Override
     public void onEnable() {
 
         refreshWorlds();
-
-        System.out.println(CACHED_WORLDS);
 
         AirBorderAPI.setBorderProvider((int x, int z, int dim) -> {
 
@@ -33,13 +34,22 @@ public final class AirWorldBorder extends JavaPlugin implements Listener {
 
             try{
 
-                System.out.println(CACHED_WORLDS.get(dim).getName());
+                long lastTime = System.currentTimeMillis();
 
-                boolean a = !WorldBorder.plugin.getWorldBorder(
-                        CACHED_WORLDS.get(dim).getName()
-                ).insideBorder(new CoordXZ(x << 4, z << 4));
-                System.out.println(x + " " + z + " " + dim + " " + a);
-                return a;
+                if(LAST_CHECK <= lastTime){
+                    CACHED_WORLD_BORDERS.remove(dim);
+                    LAST_CHECK = lastTime + 20000;
+                }
+
+                if(!CACHED_WORLD_BORDERS.containsKey(dim))
+                    CACHED_WORLD_BORDERS.put(dim, WorldBorder.plugin.getWorldBorder(CACHED_WORLDS.get(dim).getName()));
+
+                BorderData data = CACHED_WORLD_BORDERS.get(dim);
+
+                if(data != null){
+                    return data.insideBorder(new CoordXZ(x << 4, z << 4));
+                }
+
             }catch (Exception ignored){
                 System.out.println(ignored.getMessage());
             }
@@ -58,7 +68,8 @@ public final class AirWorldBorder extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        CACHED_WORLDS.clear();
+        CACHED_WORLD_BORDERS.clear();
     }
 
 }
